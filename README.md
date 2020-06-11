@@ -1,10 +1,13 @@
-## wiki-processer
+## wiki2text
+
+wiki2text is a easy tool for extract wiki.dump to plain,cleand text.
+In specially, generate simplified and  traditional  version for "zhwik*".
 
 ## prepare
 * donwnload wiki/dumps/*.xml.bz to wiki/bz  
      example    wget -O wiki/bz/   -c "https://ftp.acc.umu.se/mirror/wikimedia.org/dumps/zhwiki/20200520/zhwiki-20200520-pages-articles-multistream.xml.bz2" 
 * [optional for simplify chinese]     
-     sudo apt install -y opencc     or pip install opencc
+     pip install opencc or  sudo apt install -y opencc  
 
 ## usage
     python wiki2text.py
@@ -15,9 +18,9 @@ it will do as blows:
 
     2.  plain json to lines
             line +'\n'
-            item+'\n\n'
+            page+'\n\n'
 
-    3.  simplify  chinese [optional]
+    3.  simplify /traditionise chinese [optional]
 
 ## paths of "zhwikiversity-20200520-pages-articles"
     bz_path:/media/u/t1/data/wiki/bz/zhwikiversity-20200520-pages-articles.xml.bz2 ---->    doc_path:/media/u/t1/data/wiki/_doc/AA/wiki_00
