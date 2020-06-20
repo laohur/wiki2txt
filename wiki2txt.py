@@ -5,19 +5,34 @@ import json
 import os
 
 
-def extract2doc(bz_path,doc_dir='./',processes=-1):
+def extract2doc(bz_path,doc_path,doc_dir='.'):
     # return __doc/AA/
-    # python ./WikiExtractor.py --json /media/u/t1/data/wiki/xml/betawikiversity-20200520-pages-articles-multistream.xml   -o /media/u/t1/data/wiki/json  --processes 4  -b 1000000000000   
-    if processes<0:
-        processes=os.cpu_count()-2
-    cmd=['python','./WikiExtractor.py',bz_path,'--processes ',str(processes),'-b 1000000000000 ','--json']
-    if doc_dir:
-        cmd+=['-o',doc_dir]
-    doc_path= doc_dir+'/AA/wiki_00'
-    print(f" extract2doc start bz_path:{bz_path} ---->    doc_path:{doc_path}   .......")
+    # python ./WikiExtractor.py --json /media/u/t1/data/wiki/xml/betawikiversity-20200520-pages-articles-multistream.xml   -o /media/u/t1/data/wiki/json  --processes 4  -b 1000000   
+    json_dir=doc_dir+'_json/'
+    process=os.cpu_count()-1
+    # cmd=['python','./WikiExtractor.py',bz_path,'-b 30m --processes ', str(process),  '--json  -o',json_dir]
+    # cmd=['python  ./WikiExtractor.py ',bz_path,'-b 30m ',  '--json  -o',json_dir]
+    cmd=['python',  './WikiExtractor.py',bz_path,  '--json',  '-o',json_dir]
+    cmd=' '.join(cmd)
+    # cmd=f" python  ./WikiExtractor.py {bz_path} --json -o {json_dir} "
+    print(f" extract2doc start cmd:{cmd}  bz_path:{bz_path} ---->    doc_path:{json_dir}   .......")
+    # os.system(' '.join(cmd)+" | 1 > extractor.log")
+    # subprocess.call(cmd, shell=True)
+    subprocess.call(cmd, shell=True)
+    # with open("extractor.log","w") as fout:
+        # os.open(' '.join(cmd),stdout=fout)
+        # subprocess.Popen(' '.join(cmd),stdout=fout)
 
+    print(f" cat _json_path:{json_dir} ---->    doc_path:{doc_path}")
+    # doc_path= doc_dir+'/dump.json'
+    cmd=[" find ",json_dir," -name 'wiki*' -exec cat {} \; > ",doc_path]
     subprocess.call(' '.join(cmd), shell=True)
-    print(f" bz_path:{bz_path} ---->    doc_path:{doc_path}")
+
+    cmd=f" rm -rf {json_dir}/*"
+    subprocess.call(cmd, shell=True)
+    # cmd=[" rm -rf  ",json_dir]
+    # subprocess.call(' '.join(cmd), shell=True)
+
     return doc_path
 
 def plain(doc_path,text_path,simplified_path='',traditional_path='', chuck_size=100000):
@@ -26,8 +41,18 @@ def plain(doc_path,text_path,simplified_path='',traditional_path='', chuck_size=
     t2s = opencc.OpenCC('t2s.json')
     s2t = opencc.OpenCC('s2t.json')
     def plain_line(line):
-        sentence_delimiter = ['。','？','?','！','!','；',';']
-        sentence_delimiter+=['.\'','."',';','!','. ','?']
+        sentence_delimiter = (
+            '。',
+            '. ',
+            '？',
+            '?',
+            '！',
+            '!',
+            '；',
+            ';',
+            '。。。。。。',
+            '...'
+        )
         sentence_delimiter=list(set(sentence_delimiter))
         for delimiter in sentence_delimiter:
              line = re.sub(re.escape(delimiter), r"\g<0>\n", line)
@@ -92,10 +117,12 @@ def simplify(text_path,simplified_path):
 def process_wiki(wiki_dir,dump):
 
     bz_dir=wiki_dir+'bz/'
-    doc_dir=wiki_dir+'_doc'
+    doc_dir=wiki_dir+'doc/'
 
     bz_file=bz_dir+dump+'.xml.bz2'
-    doc_path=extract2doc(bz_file,doc_dir)  #/media/u/t1/data/wiki/_doc/AA/wiki_00
+    doc_path= doc_dir+dump+'.json'
+
+    doc_path=extract2doc(bz_file,doc_path,doc_dir)  #/media/u/t1/data/wiki/_doc/AA/wiki_00
     # doc_path='/media/u/t1/data/wiki/_doc/AA/wiki_00'
     
     plain_dir=wiki_dir+'plain/'
@@ -118,6 +145,7 @@ if __name__=='__main__':
     # demo and test
     wiki_dir="/media/u/t1/data/wiki/"
     # dump="zhwikiversity-20200520-pages-articles"
+    # dump="betawikiversity-20200520-pages-articles"
     # process_wiki(wiki_dir,dump)
     # sys.exit()
     
@@ -131,10 +159,12 @@ if __name__=='__main__':
             # print(dump)
         # process_wiki(wiki_dir,dump)
             dumps.append(dump)
-    dumps.sort()
+    dumps.sort(reverse=True)
     print(f" dumps:",'\n'.join(dumps))
     for dump in dumps:
         # if dump. startswith(langs[9]+'wik'):
+        #     if dump.startswith('zhwikisource') or dump.startswith("zhwiki-"):
+        #         continue
         process_wiki(wiki_dir,dump)
 
 
