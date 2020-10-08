@@ -1,6 +1,0 @@
-extractor.log
-log.txt
-README.md
-requirements.txt
-wiki2txt.py
-WikiExtractor.py
