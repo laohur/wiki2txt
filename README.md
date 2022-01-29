@@ -4,8 +4,8 @@ wiki2text is a easy tool for extract wiki.dump to plain text.
 
 ## get download links
 
-## download wikis
+## download
 via download tools
 
-## parse
+## extract_wiki
 
