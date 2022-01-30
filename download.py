@@ -40,18 +40,22 @@ def gen_links():
             f.write(link+'\n')
 
 
+def gen_links1():
+    import os
+    wiki_urls = open("wiki_urls.txt").read().splitlines()
+    files = glob.glob(
+        r"F:/data/wiki-20220124-cirrussearch-content-json-gz/*")
+    donwload = set([os.path.basename(x) for x in files])
+    todownload = []
+    for link in wiki_urls:
+        name = link.split('/')[-1]
+        if name not in donwload:
+            todownload.append(link)
+    with open("links1.txt", "w") as f:
+        for x in todownload:
+            f.write(x+'\n')
+
+
 if __name__ == "__main__":
-    gen_links()
-    # import os
-    # wiki_urls = open("wiki_urls.txt").read().splitlines()
-    # files = glob.glob(
-    #     r"F:/data/wiki-20220117-cirrussearch-content-json-gz/*")
-    # donwload = set([os.path.basename(x) for x in files])
-    # todownload = []
-    # for link in wiki_urls:
-    #     name = link.split('/')[-1]
-    #     if name not in donwload:
-    #         todownload.append(link)
-    # with open("links1.txt", "w") as f:
-    #     for x in todownload:
-    #         f.write(x+'\n')
+    # gen_links()
+    gen_links1()
