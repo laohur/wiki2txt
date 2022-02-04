@@ -27,36 +27,25 @@ def read_gz(p):
 
 def extract_wiki(param):
     src, tgt = param
-    # src=f"F:/data/wiki-20211122-cirrussearch-content.json.gz/zhwikibooks-20211122-cirrussearch-content.json.gz"
-    # name=src.split('/')[-1]
-    # name=os.path.basename(src)
-    # name=name.split('-')[0]
-    # name = get_name(src)
     xz = tgt+'.xz'
-    # prefix = name.split('wik')[0]
-    # # print(f"{name} --> {prefix} \n")
-    # if len(prefix) != 2:
-    #     for p in [xz, tgt, src]:
-    #         if os.path.exists(p):
-    #             logger.warn(f" {p} removed !")
-    #             os.remove(p)
-    if not os.path.exists(tgt) and os.path.exists(xz):
-        return f" {xz} exists"
+    # if not os.path.exists(tgt) and os.path.exists(xz):
+    # return f" {xz} exists"
     # return ''
     logger.info(f"{src}  -->  {tgt} ...")
     i = 0
     with open(tgt, 'w') as f:
-        input = gzip.open(src, mode='rt', errors='ignore', newline='')
+        input = gzip.open(src, mode='rt', errors='ignore')
         while True:
             a = ''
             i += 1
             try:
                 a = input.readline()
-                # index = json.loads(a)
                 if not a:
                     break
-                b = input.readline()
-                content = json.loads(b)
+                # b = input.readline()
+                content = json.loads(a)
+                if 'text' not in content:
+                    continue
                 # type = index['index']['_type']
                 # id = index['index']['_id']
                 # language = content['language']
