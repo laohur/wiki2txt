@@ -57,5 +57,5 @@ def gen_links1():
 
 
 if __name__ == "__main__":
-    # gen_links()
+    gen_links()
     gen_links1()

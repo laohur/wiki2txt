@@ -17,6 +17,7 @@ from logzero import logger
 
 import gzip
 
+# https://github.com/attardi/wikiextractor
 
 def parse_line(a,b):
     page=""
