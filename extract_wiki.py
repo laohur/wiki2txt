@@ -92,9 +92,9 @@ def extract_wiki(src, tgt, compress_type=""):
     for p in [tgt, xz]:
         if os.path.exists(p):
             os.remove(p)
-    logger.info(f"{src}  -->  {tgt} ...")
+    logger.info(f"{src}  -->  ...")
     n_line = process_dump(src, tgt, compress_type)
-    logger.info(f"{src}  -->  {tgt} n_line:{n_line}")
+    logger.info(f" -->  {tgt} n_line:{n_line}")
     # os.system(f"xz {tgt}")
     return tgt
 
