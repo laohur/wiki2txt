@@ -19,8 +19,9 @@ import gzip
 
 # https://github.com/attardi/wikiextractor
 
-def parse_line(a,b):
-    page=""
+
+def parse_line(a, b):
+    page = ""
     index = json.loads(a)
     content = json.loads(b)
     type = index['index']['_type']
@@ -40,6 +41,7 @@ def parse_line(a,b):
             id, url, title, language, revision)
         page = header + title + '\n\n' + text + '\n</doc>\n'
     return page
+
 
 def process_dump(input_file, out_file, compress_type=""):
     """
@@ -76,7 +78,7 @@ def process_dump(input_file, out_file, compress_type=""):
         doc = input.readline()
         n_line += 2
         try:
-            page=parse_line(line,doc)
+            page = parse_line(line, doc)
             if page:
                 output.write(page.encode('utf-8'))
         except Exception as e:
@@ -85,59 +87,27 @@ def process_dump(input_file, out_file, compress_type=""):
 
 
 def extract_wiki(src, tgt, compress_type=""):
+    if os.path.exists(tgt):
+        os.remove(tgt)
     xz = tgt+'.xz'
-    # if not os.path.exists(tgt) and os.path.exists(xz):
-    # return f" {xz} exists"
-    # return ''
-    for p in [tgt, xz]:
-        if os.path.exists(p):
-            os.remove(p)
+    if os.path.exists(xz):
+        logger.info(f" -->  {xz}  exists!")
+        return
     logger.info(f"{src}  -->  ...")
     n_line = process_dump(src, tgt, compress_type)
     logger.info(f" -->  {tgt} n_line:{n_line}")
-    # os.system(f"xz {tgt}")
     return tgt
-
-
-def mparse():
-
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--lang', default="global",  type=str)
-    args = parser.parse_args()
-    print(args)
-    lang = args.lang
-    gzs = list(glob.iglob(
-        f"F:/data/wiki-20220124-cirrussearch-content.json.gz/*.gz", recursive=True))
-
-    params = []
-    for src in gzs:
-        name = os.path.basename(src)
-        src = "F:/data/wiki-20220124-cirrussearch-content-json-gz/"+name
-        if not os.path.exists(src):
-            continue
-        t = name.rstrip(".json.gz")
-        tgt = "F:/data/wiki-20220124-cirrussearch-content-txt-xz/"+t+'.txt'
-        param = (src, tgt)
-        params.append(param)
-
-    random.shuffle(params)
-    import multiprocessing
-    with multiprocessing.Pool(6) as pool:
-        re = pool.imap_unordered(extract_wiki, params)
-        for x in re:
-            logger.info(x)
 
 
 def parse_all():
     srcs = glob.glob(
-        rf"F:/data/wiki-20220124-cirrussearch-content-json-gz/*.gz")
+        rf"F:/data/wiki-20220131-cirrussearch-content-json-gz/*.gz")
     for src in srcs:
-        name=os.path.basename(src)
+        name = os.path.basename(src)
         t = name.rstrip(".json.gz")
         # if not t.startswith("enwiki"):
-            # continue
-        tgt = "F:/data/wiki-20220124-cirrussearch-content-txt-xz/"+t+'.txt'
+        # continue
+        tgt = "F:/data/wiki-20220131-cirrussearch-content-txt-xz/"+t+'.txt'
         extract_wiki(src, tgt, 'xz')
         # break
 
