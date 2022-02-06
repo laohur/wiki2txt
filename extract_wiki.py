@@ -21,26 +21,27 @@ import gzip
 
 
 def parse_line(a, b):
-    page = ""
+    # page = ""
+    text = ""
     index = json.loads(a)
     content = json.loads(b)
     type = index['index']['_type']
-    id = index['index']['_id']
-    language = content['language']
-    revision = content['version']
+    # id = index['index']['_id']
+    # language = content['language']
+    # revision = content['version']
     if type == 'page' and content['namespace'] == 0:
-        title = content['title']
+        # title = content['title']
         text = content['text']
         # drop references:
         # ^ The Penguin Dictionary
         text = re.sub(r'  \^ .*', '', text)
         # urlbase = 'http://it.wikipedia.org/'
-        urlbase = f'http://{language}.wikipedia.org/'
-        url = urlbase + 'wiki?curid=' + id
-        header = '<doc id="%s" url="%s" title="%s" language="%s" revision="%s">\n' % (
-            id, url, title, language, revision)
-        page = header + title + '\n\n' + text + '\n</doc>\n'
-    return page
+        # urlbase = f'http://{language}.wikipedia.org/'
+        # url = urlbase + 'wiki?curid=' + id
+        # header = '<doc id="%s" url="%s" title="%s" language="%s" revision="%s">\n' % (
+        #     id, url, title, language, revision)
+        # page = header + title + '\n\n' + text + '\n</doc>\n'
+    return text.strip()
 
 
 def process_dump(input_file, out_file, compress_type=""):
@@ -80,6 +81,7 @@ def process_dump(input_file, out_file, compress_type=""):
         try:
             page = parse_line(line, doc)
             if page:
+                page += '\n'
                 output.write(page.encode('utf-8'))
         except Exception as e:
             logger.error(e)
@@ -94,14 +96,24 @@ def extract_wiki(src, tgt, compress_type=""):
         logger.info(f" -->  {xz}  exists!")
         return
     logger.info(f"{src}  -->  ...")
-    n_line = process_dump(src, tgt, compress_type)
-    logger.info(f" -->  {tgt} n_line:{n_line}")
+    try:
+        n_line = process_dump(src, tgt, compress_type)
+        logger.info(f" -->  {tgt} n_line:{n_line}")
+    except Exception as e:
+        logger.error(e)
+        if os.path.exists(xz):
+            os.remove(xz)
+            logger.warning(f" -->  {xz}  removed!")
+            return
     return tgt
 
 
 def parse_all():
     srcs = glob.glob(
         rf"F:/data/wiki-20220131-cirrussearch-content-json-gz/*.gz")
+    # srcs = list(srcs)
+    # import random
+    # random.shuffle(srcs)
     for src in srcs:
         name = os.path.basename(src)
         t = name.rstrip(".json.gz")
