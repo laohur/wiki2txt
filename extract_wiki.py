@@ -60,12 +60,16 @@ def process_dump(input_file, out_file, compress_type=""):
     if out_file == '-':
         output = sys.stdout
     else:
-        if compress_type == "bz2":
+        if not compress_type:
+            output = open(out_file, "w")
+        elif compress_type == "bz2":
             output = bz2.BZ2File(out_file + '.bz2', 'w')
         elif compress_type == "xz":
             output = lzma.open(out_file+'.xz', "w")
+        elif compress_type == "test":
+            output = None
         else:
-            output = open(out_file, "w")
+            raise ValueError("invalid compress_type "+compress_type)
 
     # process dump
     # format
@@ -76,6 +80,8 @@ def process_dump(input_file, out_file, compress_type=""):
         line = input.readline()
         if not line:
             break
+        if not output:
+            continue
         doc = input.readline()
         n_line += 2
         try:
@@ -108,21 +114,36 @@ def extract_wiki(src, tgt, compress_type=""):
     return tgt
 
 
-def parse_all():
+def parse_all(lang="*", compress_type="xz"):
     srcs = glob.glob(
-        rf"F:/data/wiki-20220131-cirrussearch-content-json-gz/*.gz")
-    # srcs = list(srcs)
-    # import random
-    # random.shuffle(srcs)
+        rf"F:/data/wiki-20220131-cirrussearch-content-json-gz/{lang}*.gz")
+    srcs = list(srcs)
+    srcs.sort()
     for src in srcs:
         name = os.path.basename(src)
         t = name.rstrip(".json.gz")
-        # if not t.startswith("enwiki"):
-        # continue
+        if t[:2] <= 'a ':
+            continue
         tgt = "F:/data/wiki-20220131-cirrussearch-content-txt-xz/"+t+'.txt'
-        extract_wiki(src, tgt, 'xz')
+        extract_wiki(src, tgt, compress_type)
+        # break
+
+
+def test_all(lang="a0", compress_type="test"):
+    srcs = glob.glob(
+        rf"F:/data/wiki-20220131-cirrussearch-content-json-gz/{lang}*.gz")
+    srcs = list(srcs)
+    srcs.sort()
+    for src in srcs:
+        name = os.path.basename(src)
+        t = name.rstrip(".json.gz")
+        if t[:2] <= lang:
+            continue
+        tgt = "F:/data/wiki-20220131-cirrussearch-content-txt-xz/"+t+'.txt'
+        extract_wiki(src, tgt, compress_type)
         # break
 
 
 if __name__ == '__main__':
+    # test_all()
     parse_all()
