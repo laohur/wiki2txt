@@ -12,6 +12,5 @@ via download tools
 python extract_wiki.py
 
 ## wiki-1m-corpus
-/corpus/wiki-1m.zip
-179 languages 
-1MB
+* corpus/wiki-1m.zip
+* 179 languages ✖ 1MB
