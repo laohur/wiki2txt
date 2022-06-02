@@ -11,7 +11,7 @@ via download tools
 ## extract_wiki
 python extract_wiki.py
 
-## dataset
+## wiki-1m-corpus
 /corpus/wiki-1m.zip
 179 languages 
 1MB
