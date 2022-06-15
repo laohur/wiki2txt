@@ -6,16 +6,8 @@ import re
 from logzero import logger
 
 
-def get_langs():
-    alphabet = ''.join(chr(x) for x in range(ord('a'), ord('z')+1))
-    langs = []
-    for x in alphabet:
-        for y in alphabet:
-            langs.append(x+y)
-    return langs
-
-
-langs = get_langs()
+langs = [chr(a)+chr(b) for a in range(ord('a'), ord('z')+1)
+         for b in range(ord('a'), ord('z')+1)]
 
 
 def get_dumps():
@@ -46,18 +38,21 @@ dumps = ['wikiquote', 'wikibooks', 'wikimedia', 'wikiversity',
 def get_names():
     # https://ftp.acc.umu.se/mirror/wikimedia.org/other/cirrussearch/20220124/
     files = open("files.txt").read().splitlines()
-
     # cbk_zamwiki-20220117-cirrussearch-general.json.gz
-    languages=set()
+    languages = set()
     names = []
-    for f in files:
+    for l in files:
+        w = l.strip().split("\t")
+        if len(w) != 4:
+            continue
+        f = w[1]
         if not f.endswith("-cirrussearch-content.json.gz"):
             continue
         name = f.split('-')[0]
         # if name[2:5] == "wik" or name[3:6] == "wik":
         if name[2:5] == "wik":
             names.append(f)
-            lang=name.split("wik")[0]
+            lang = name.split("wik")[0]
             languages.add(lang)
     logger.info(("languages", len(languages)))
     logger.info(("languages", (languages)))
@@ -65,21 +60,26 @@ def get_names():
     return names
 
 
-def gen_links1():
-    names = get_names()
+def gen_links1(day="20220606"):
+    # https://ftp.acc.umu.se/mirror/wikimedia.org/other/cirrussearch/current/
     # https://ftp.acc.umu.se/mirror/wikimedia.org/other/cirrussearch/20220131/aawiki-20220131-cirrussearch-content.json.gz
-    day = "20220131"
+
+    urls = []
+    for lang in langs:
+        for dump in dumps:
+            # https://ftp.acc.umu.se/mirror/wikimedia.org/other/cirrussearch/current/aawiki-20220606-cirrussearch-content.json.gz
+            url = f"https://ftp.acc.umu.se/mirror/wikimedia.org/other/cirrussearch/current/{lang+dump}-{day}-cirrussearch-content.json.gz"
+            urls.append(url)
+
     with open("wiki_urls.txt", "w") as f:
-        for lang in langs:
-            for dump in dumps:
-                link = f"https://ftp.acc.umu.se/mirror/wikimedia.org/other/cirrussearch/{day}/{lang}{dump}-{day}-cirrussearch-content.json.gz"
-                f.write(link+'\n')
+        for url in urls:
+            f.write(url+'\n')
 
 
-def gen_links():
+def gen_links(day="20220606"):
     names = get_names()
     # https://ftp.acc.umu.se/mirror/wikimedia.org/other/cirrussearch/20220124/advisorywiki-20220124-cirrussearch-content.json.gz
-    day = "20220606"
+
     # host = "https://ftp.acc.umu.se/mirror/wikimedia.org/other/cirrussearch/20220124/"
     with open("wiki_urls.txt", "w") as f:
         for name in names:
@@ -89,6 +89,7 @@ def gen_links():
 
 
 def gen_links1():
+    """ check """
     import os
     wiki_urls = open("wiki_urls.txt").read().splitlines()
     day = "20220131"
@@ -110,7 +111,8 @@ if __name__ == "__main__":
     get_dumps()
     names = get_names()
     gen_links()
-    # gen_links1()
+    gen_links1()
+
 """
 [I 220613 23:29:12 download:62] ('languages', 189)
 [I 220613 23:29:12 download:63] ('languages', {'kn', 'fr', 'sg', 'or', 'wb', 'sn', 'sa', 'bs', 'ua', 'ks', 'da', 'ff', 'ie', 'dk', 'li', 'bo', 'mr', 'nl', 'os', 'tk', 'kg', 'ar', 'lt', 'bn', 'eo', 'sl', 'ht', 'mx', 'ee', 'ms', 'bm', 'lg', 'ur', 'sk', 'fj', 'iu', 'eu', 'sq', 'ge', 'ky', 'su', 'yo', 'ja', 'zh', 'bg', 'lo', 'ro', 'av', 'kr', 'ba', 'lb', 'ts', 'tr', 'la', 'ig', 'hi', 'rn', 'fa', 'hy', 'wa', 'km', 've', 'xh', 'cu', 'no', 'hr', 'rs', 'cr', 'en', 'fo', 'bh', 'zu', 'ug', 'mk', 'ty', 'ay', 'ti', 'be', 'ha', 'ak', 'mi', 'ru', 'ab', 'ce', 'ps', 'gu', 'de', 'ss', 'th', 'lv', 'wo', 'ta', 'tw', 'rw', 'ik', 'om', 'ne', 'jv', 'he', 'br', 'az', 'nv', 'kj', 'yi', 'mg', 'gl', 'cn', 'vi', 'co', 'sd', 'dz', 'st', 'it', 'my', 'gd', 'nz', 'et', 'nn', 'sh', 'se', 'kv', 'pa', 'mt', 'tg', 'si', 'uk', 'ka', 'kk', 'cs', 'cy', 'es', 'vo', 'na', 

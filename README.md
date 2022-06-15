@@ -3,10 +3,11 @@
 wiki2text is a easy tool for extract wiki.dump to plain text.
 
 ## get download links
+copy https://ftp.acc.umu.se/mirror/wikimedia.org/other/cirrussearch/current/ > files.txt
 python download.py
 
 ## download
-via download tools
+download urls in wiki_urls.txt 
 
 ## extract_wiki
 python extract_wiki.py
