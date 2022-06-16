@@ -76,6 +76,7 @@ def gen_links1(day="20220606"):
             f.write(url+'\n')
 
 
+
 def gen_links(day="20220606"):
     names = get_names()
     # https://ftp.acc.umu.se/mirror/wikimedia.org/other/cirrussearch/20220124/advisorywiki-20220124-cirrussearch-content.json.gz
@@ -88,11 +89,11 @@ def gen_links(day="20220606"):
             f.write(link+'\n')
 
 
-def gen_links1():
+def gen_links1(day="20220606"):
     """ check """
     import os
     wiki_urls = open("wiki_urls.txt").read().splitlines()
-    day = "20220131"
+    
 
     files = glob.glob(
         rf"F:/data/wiki-{day}-cirrussearch-content-json-gz/*")

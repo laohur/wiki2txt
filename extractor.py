@@ -13,16 +13,16 @@ import re
 import random
 import time
 import shutil
-from logzero import logger
-
+import argparse
 import gzip
+
+from logzero import logger
 
 # https://github.com/attardi/wikiextractor
 
 
 def parse_line(a, b):
-    # page = ""
-    text = ""
+    page = None
     index = json.loads(a)
     content = json.loads(b)
     type = index['index']['_type']
@@ -30,8 +30,8 @@ def parse_line(a, b):
     # language = content['language']
     # revision = content['version']
     if type == 'page' and content['namespace'] == 0:
-        # title = content['title']
-        text = content['text']
+        # title = content['title'].strip()   # nosense
+        text = content['text'].strip()
         # drop references:
         # ^ The Penguin Dictionary
         text = re.sub(r'  \^ .*', '', text)
@@ -41,7 +41,8 @@ def parse_line(a, b):
         # header = '<doc id="%s" url="%s" title="%s" language="%s" revision="%s">\n' % (
         #     id, url, title, language, revision)
         # page = header + title + '\n\n' + text + '\n</doc>\n'
-    return text.strip()
+        page = text.strip()
+    return page
 
 
 def process_dump(input_file, out_file, compress_type=""):
@@ -66,8 +67,6 @@ def process_dump(input_file, out_file, compress_type=""):
             output = bz2.BZ2File(out_file + '.bz2', 'w')
         elif compress_type == "xz":
             output = lzma.open(out_file+'.xz', "w")
-        elif compress_type == "test":
-            output = None
         else:
             raise ValueError("invalid compress_type "+compress_type)
 
@@ -86,9 +85,12 @@ def process_dump(input_file, out_file, compress_type=""):
         n_line += 2
         try:
             page = parse_line(line, doc)
-            if page:
-                page += '\n'
-                output.write(page.encode('utf-8'))
+            if not page:
+                continue
+            page+='\n'
+            if compress_type:
+                page=page.encode('utf-8')
+            output.write(page)
         except Exception as e:
             logger.error(e)
     return n_line
@@ -96,54 +98,27 @@ def process_dump(input_file, out_file, compress_type=""):
 
 def extract_wiki(src, tgt, compress_type=""):
     if os.path.exists(tgt):
-        os.remove(tgt)
-    xz = tgt+'.xz'
-    if os.path.exists(xz):
-        logger.info(f" -->  {xz}  exists!")
+        # os.remove(tgt)
+        logger.warning(f" -->  {tgt}  exists!")
         return
     logger.info(f"{src}  -->  ...")
     try:
         n_line = process_dump(src, tgt, compress_type)
-        logger.info(f" -->  {tgt} n_line:{n_line}")
+        logger.info(f" n_line:{n_line} -->  {tgt} ")
     except Exception as e:
         logger.error(e)
-        if os.path.exists(xz):
-            os.remove(xz)
-            logger.warning(f" -->  {xz}  removed!")
+        if os.path.exists(tgt):
+            os.remove(tgt)
+            logger.error(f" -->  {tgt}  cleaned!")
             return
     return tgt
 
-
-def parse_all(lang="*", compress_type="xz"):
-    srcs = glob.glob(
-        rf"F:/data/wiki-20220131-cirrussearch-content-json-gz/{lang}*.gz")
-    srcs = list(srcs)
-    srcs.sort()
-    for src in srcs:
-        name = os.path.basename(src)
-        t = name.rstrip(".json.gz")
-        if t[:2] <= 'a ':
-            continue
-        tgt = "F:/data/wiki-20220131-cirrussearch-content-txt-xz/"+t+'.txt'
-        extract_wiki(src, tgt, compress_type)
-        # break
-
-
-def test_all(lang="a0", compress_type="test"):
-    srcs = glob.glob(
-        rf"F:/data/wiki-20220131-cirrussearch-content-json-gz/{lang}*.gz")
-    srcs = list(srcs)
-    srcs.sort()
-    for src in srcs:
-        name = os.path.basename(src)
-        t = name.rstrip(".json.gz")
-        if t[:2] <= lang:
-            continue
-        tgt = "F:/data/wiki-20220131-cirrussearch-content-txt-xz/"+t+'.txt'
-        extract_wiki(src, tgt, compress_type)
-        # break
-
-
 if __name__ == '__main__':
-    # test_all()
-    parse_all()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--src",
+                        help="Cirrus Json wiki dump file")
+    parser.add_argument("--tgt", default="-")
+    parser.add_argument("--compress_type", default="")
+
+    args = parser.parse_args()
+    extract_wiki(args.src, args.tgt, args.compress_type)
