@@ -91,7 +91,7 @@ def process_dump(input_file, out_file, compress_type="", same_language=False):
             name = os.path.basename(input_file)
             if same_language and language[:2] != name[:2]:
                 logger.warning(
-                    f"{ language[:2]}!={input_file[:2]} ignore {page[:100]} ")
+                    f"{ language[:2]}!={name[:2]} ignore {page[:100]} ")
                 continue
             page += '\n'
             if compress_type:

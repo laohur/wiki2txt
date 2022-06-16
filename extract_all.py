@@ -36,6 +36,9 @@ def parse_all(src_dir, tgt_dir, lang="*", compress_type="xz", same_language=Fals
 
 
 if __name__ == '__main__':
+    extract_wiki(src="F:/data/wiki-20220606-cirrussearch-content-json-gz/amwikimedia-20220606-cirrussearch-content.json.gz ",
+                 tgt="F:/data/wiki-20220606-cirrussearch-content-txt-bz2/amwikimedia-20220606-cirrussearch-content.txt.bz2 ",
+             compress_type="bz2", same_language=True)
     src_dir = "F:/data/wiki-20220606-cirrussearch-content-json-gz"
     tgt_dir = "F:/data/wiki-20220606-cirrussearch-content-txt-bz2"
     parse_all(src_dir, tgt_dir, compress_type="bz2", same_language=True)
