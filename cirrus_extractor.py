@@ -29,7 +29,8 @@ def parse_line(a, b):
     # id = index['index']['_id']
     language = content['language']
     # revision = content['version']
-    if type == 'page' and content['namespace'] == 0:
+    # if type == 'page' and content['namespace'] == 0:
+    if type == '_doc' and content['namespace'] == 0:
         # title = content['title'].strip()   # nosense
         text = content['text'].strip()
         # drop references:
@@ -45,7 +46,7 @@ def parse_line(a, b):
     return page, language
 
 
-def process_dump(input_file, out_file, compress_type="", same_language=False):
+def process_dump(input_file, out_file, compress_type="", language=""):
     """
     :param input_file: name of the wikipedia dump file; '-' to read from stdin
     :param out_file: directory where to store extracted data, or '-' for stdout
@@ -85,13 +86,13 @@ def process_dump(input_file, out_file, compress_type="", same_language=False):
         doc = input.readline()
         n_src += 2
         try:
-            page, language = parse_line(line, doc)
+            page, lang = parse_line(line, doc)
             if not page:
                 continue
             name = os.path.basename(input_file)
-            if same_language and language[:2] != name[:2]:
+            if language and language != lang:
                 logger.warning(
-                    f"{ language[:2]}!={name[:2]} ignore {page[:100]} ")
+                    f"{ language}!={lang}, ignore {page[:100]} ")
                 continue
             page += '\n'
             if compress_type:
@@ -100,27 +101,26 @@ def process_dump(input_file, out_file, compress_type="", same_language=False):
             n_tgt += 1
         except Exception as e:
             logger.error(e)
+    output.close()
     return n_src, n_tgt
 
 
-def extract_wiki(src, tgt, compress_type="", same_language=False):
+def extract_wiki(src, tgt, compress_type="", language=False):
     if os.path.exists(tgt):
-        # os.remove(tgt)
+        os.system(f"rm {tgt}")
         logger.warning(f" -->  {tgt}  exists!")
-        return
-    logger.info(f"{src}  -->  ...")
     try:
         n_src, n_tgt = process_dump(src, tgt, compress_type,
-                                    same_language=same_language)
+                                    language=language)
         logger.info(f" n_src:{n_src} --> n_tgt：{n_tgt} {tgt} ")
         if not n_tgt:
-            os.remove(tgt)
+            os.system(f"rm {tgt}")
             logger.warning(f" --> empty {tgt}  cleaned!")
             return
     except Exception as e:
         logger.error(e)
         if os.path.exists(tgt):
-            os.remove(tgt)
+            os.system(f"rm {tgt}")
             logger.error(f" -->  {tgt}  cleaned!")
             return
 
@@ -133,8 +133,8 @@ if __name__ == '__main__':
                         help="Cirrus Json wiki dump file")
     parser.add_argument("--tgt", default="-")
     parser.add_argument("--compress_type", default="")
-    parser.add_argument("--same_language", default=False)
-
+    parser.add_argument("--language", default='')
     args = parser.parse_args()
+    
     extract_wiki(args.src, args.tgt, args.compress_type,
-                 same_language=args.same_language)
+                 language=args.language)
