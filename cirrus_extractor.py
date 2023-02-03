@@ -21,13 +21,11 @@ from logzero import logger
 # https://github.com/attardi/wikiextractor
 
 
-def parse_line(a, b):
-    page = None
+def parse_line(a, b, keep_keys=['title', 'text', "popularity_score"]):
     index = json.loads(a)
     content = json.loads(b)
     type = index['index']['_type']
     # id = index['index']['_id']
-    language = content['language']
     # revision = content['version']
     # if type == 'page' and content['namespace'] == 0:
     if type == '_doc' and content['namespace'] == 0:
@@ -35,18 +33,21 @@ def parse_line(a, b):
         text = content['text'].strip()
         # drop references:
         # ^ The Penguin Dictionary
-        text = re.sub(r'  \^ .*', '', text)
+        text = re.sub(r'  \^ .*', '', text).strip()
         # urlbase = 'http://it.wikipedia.org/'
         # urlbase = f'http://{language}.wikipedia.org/'
         # url = urlbase + 'wiki?curid=' + id
         # header = '<doc id="%s" url="%s" title="%s" language="%s" revision="%s">\n' % (
         #     id, url, title, language, revision)
         # page = header + title + '\n\n' + text + '\n</doc>\n'
-        page = text.strip()
-    return page, language
+        if not text:
+            return
+        content["text"]=text
+        page={k:v for k,v in content.items() if k in keep_keys}
+        return page        
 
 
-def process_dump(input_file, out_file, compress_type="", language=""):
+def process_dump(input_file, out_file, compress_type=""):
     """
     :param input_file: name of the wikipedia dump file; '-' to read from stdin
     :param out_file: directory where to store extracted data, or '-' for stdout
@@ -84,46 +85,31 @@ def process_dump(input_file, out_file, compress_type="", language=""):
         if not output:
             continue
         doc = input.readline()
-        n_src += 2
-        try:
-            page, lang = parse_line(line, doc)
-            if not page:
-                continue
-            name = os.path.basename(input_file)
-            if language and language != lang:
-                logger.warning(
-                    f"{ language}!={lang}, ignore {page[:100]} ")
-                continue
-            page += '\n'
-            if compress_type:
-                page = page.encode('utf-8')
-            output.write(page)
-            n_tgt += 1
-        except Exception as e:
-            logger.error(e)
+        n_src += 1
+        page = parse_line(line, doc)
+        if not page:
+            continue
+        l =json.dumps(page,ensure_ascii=False)+ '\n'
+        if compress_type:
+            l = l.encode('utf-8')
+        output.write(l)
+        n_tgt += 1
+        if n_src%100000==0:
+            logger.info(f"{n_src} --> {out_file} {n_tgt}")
     output.close()
     return n_src, n_tgt
 
 
-def extract_wiki(src, tgt, compress_type="", language=False):
+def extract(src, tgt, compress_type="",):
     if os.path.exists(tgt):
         os.system(f"rm {tgt}")
-        logger.warning(f" -->  {tgt}  exists!")
-    try:
-        n_src, n_tgt = process_dump(src, tgt, compress_type,
-                                    language=language)
-        logger.info(f" n_src:{n_src} --> n_tgt：{n_tgt} {tgt} ")
-        if not n_tgt:
-            os.system(f"rm {tgt}")
-            logger.warning(f" --> empty {tgt}  cleaned!")
-            return
-    except Exception as e:
-        logger.error(e)
-        if os.path.exists(tgt):
-            os.system(f"rm {tgt}")
-            logger.error(f" -->  {tgt}  cleaned!")
-            return
-
+        logger.warning(f" rm {tgt}  ")
+    n_src, n_tgt = process_dump(src, tgt, compress_type)
+    logger.info(f" {src}:{n_src} --> {tgt}:{n_tgt} ")
+    if not n_tgt:
+        os.system(f"rm {tgt}")
+        logger.warning(f" --> empty {tgt}  cleaned!")
+        return
     return tgt
 
 
@@ -136,5 +122,4 @@ if __name__ == '__main__':
     parser.add_argument("--language", default='')
     args = parser.parse_args()
     
-    extract_wiki(args.src, args.tgt, args.compress_type,
-                 language=args.language)
+    extract(args.src, args.tgt, args.compress_type)
