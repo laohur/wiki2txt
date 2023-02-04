@@ -76,6 +76,7 @@ def parse_text(text):
         for section in sections]
     spans = [wiki_replace(x) for x in contents]
     doc = [pure_section(x) for x in spans]
+    doc=[x for x in doc if x]
     return doc
 
 
