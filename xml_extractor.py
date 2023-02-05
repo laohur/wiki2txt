@@ -1,4 +1,5 @@
 import bz2
+import gzip
 import lzma
 import os
 import pathlib
@@ -29,11 +30,11 @@ def wiki_replace(s):
     s = re.sub('\* *\n|\'{2,}', '', s)
     s = re.sub('\n+', '\n', s)
     s = re.sub('\n[:;]|\n +', '\n', s)
-    s = re.sub('\n==', '\n\n==', s)
+    # s = re.sub('\n==', '\n\n==', s)
     return s
 
 
-ref_words = ['\n*', 'refer to:', 'See also']
+ref_words = ['\n*', 'refer to:', 'See also', 'Look up']
 ref_words = [x.lower() for x in ref_words]
 
 
@@ -42,15 +43,15 @@ def pure_section(x):
     if x.endswith('=='):
         return ''
     for ref in ref_words:
-        if ref in x[:32]:
+        if ref in x[:32] or ref in x[-32:]:
             return ''
-    lines = [l.strip() for l in x.splitlines()]
+    lines = [l.strip() for l in x.splitlines() if l.strip()]
     doc = [x for x in lines if not x.startswith(
         'File:') and not x.startswith('* ')]
-    doc = [x.strip() for x in doc if x]
+    doc = [x.strip() for x in doc if x.strip()]
     if sum(1 if x.startswith('==') else 0 for x in doc) == len(doc):
         return ''
-    return ''.join(doc).strip()
+    return ''.join(doc)
 
 
 def parse_text(text):
@@ -62,21 +63,11 @@ def parse_text(text):
     """
     sections = wtp.parse(text).sections
     contents = [
-        section.plain_text(
-            replace_templates=False,
-            replace_parser_functions=False,
-            replace_parameters=True,
-            replace_tags=True,
-            replace_external_links=True,
-            replace_wikilinks=True,
-            unescape_html_entities=True,
-            replace_bolds_and_italics=True,
-            _is_root_node=False
-        )
+        section.plain_text()
         for section in sections]
-    spans = [wiki_replace(x) for x in contents]
-    doc = [pure_section(x) for x in spans]
-    doc=[x for x in doc if x]
+    spans = [[ wiki_replace(x).strip() for x in y.strip().splitlines() ] for y in contents if y.strip() ]
+    doc = [pure_section('\n'.join(x)).strip() for x in spans]
+    doc = [x.strip() for x in doc if x.strip()]
     return doc
 
 
@@ -95,7 +86,7 @@ def parse_wiki(wiki):
 def extract(src, out_file, compress_type=''):
     logger.info(f"extract {src}")
     pipe = subprocess.Popen(
-        f"bzcat  {src}", stdout=subprocess.PIPE, encoding='utf-8', errors='ignore')
+        f"bzcat  {src}",shell=True, stdout=subprocess.PIPE, encoding='utf-8', errors='ignore')
     wikis = extract_pages(pipe.stdout)
 
     if out_file == '-':
@@ -105,6 +96,8 @@ def extract(src, out_file, compress_type=''):
             output = open(out_file, "w")
         elif compress_type == "bz2":
             output = bz2.BZ2File(out_file, 'w')
+        elif compress_type == "gz":
+            output = gzip.GzipFile(out_file, 'w')
         elif compress_type == "xz":
             output = lzma.open(out_file, "w")
         else:
@@ -112,7 +105,7 @@ def extract(src, out_file, compress_type=''):
 
     batch = []
     n = 0
-    pool = multiprocessing.Pool(max(1, os.cpu_count()-1))
+    pool = multiprocessing.Pool(max(1, os.cpu_count()//2))
     for i, wiki in enumerate(wikis):
         batch.append(wiki)
         if len(batch) >= 1e5:
@@ -125,7 +118,6 @@ def extract(src, out_file, compress_type=''):
                     n += 1
             batch = []
             logger.info(f"{i}--> {out_file} {n}")
-
     if len(batch) > 0:
         re = pool.imap_unordered(parse_wiki, batch)
         for line in re:
@@ -154,5 +146,4 @@ if __name__ == "__main__":
     parser.add_argument("--compress_type", type=str, default="")
     args = parser.parse_args()
 
-    extract("F:/data/wiki-xml-dumps/enwiki-20230101-pages-articles.xml.bz2",
-            "F:/data/wiki-xml-json//enwiktionary-xml.json", compress_type=args.compress_type)
+    extract(args.src,args.tgt, compress_type=args.compress_type)

@@ -18,6 +18,8 @@ import gzip
 
 from logzero import logger
 
+from xml_extractor import wiki_replace,pure_section
+
 # https://github.com/attardi/wikiextractor
 
 
@@ -29,20 +31,27 @@ def parse_line(a, b, keep_keys=['title', 'text', "popularity_score"]):
     # revision = content['version']
     # if type == 'page' and content['namespace'] == 0:
     if type == '_doc' and content['namespace'] == 0:
-        # title = content['title'].strip()   # nosense
+        title = content['title'].strip()  
         text = content['text'].strip()
+        if not title or re.findall('^[a-zA-Z]+:', title) or re.findall(u'^#', text):
+            return
         # drop references:
         # ^ The Penguin Dictionary
         text = re.sub(r'  \^ .*', '', text).strip()
+        contents = text.splitlines()
+        spans = [wiki_replace(x).strip() for x in contents]
+        doc = [pure_section(x).strip() for x in spans]
+        doc = [x.strip() for x in doc if x.strip()]
+
         # urlbase = 'http://it.wikipedia.org/'
         # urlbase = f'http://{language}.wikipedia.org/'
         # url = urlbase + 'wiki?curid=' + id
         # header = '<doc id="%s" url="%s" title="%s" language="%s" revision="%s">\n' % (
         #     id, url, title, language, revision)
         # page = header + title + '\n\n' + text + '\n</doc>\n'
-        if not text:
-            return
-        content["text"]=text
+        if not doc or sum(len(x) for x in doc) < 64:
+            return        
+        content["text"] = doc
         page={k:v for k,v in content.items() if k in keep_keys}
         return page        
 
@@ -67,6 +76,8 @@ def process_dump(input_file, out_file, compress_type=""):
             output = open(out_file, "w")
         elif compress_type == "bz2":
             output = bz2.BZ2File(out_file, 'w')
+        elif compress_type == "gz":
+            output = gzip.GzipFile(out_file, 'w')
         elif compress_type == "xz":
             output = lzma.open(out_file, "w")
         else:
@@ -119,7 +130,8 @@ if __name__ == '__main__':
                         help="Cirrus Json wiki dump file")
     parser.add_argument("--tgt", default="-")
     parser.add_argument("--compress_type", default="")
-    parser.add_argument("--language", default='')
     args = parser.parse_args()
     
     extract(args.src, args.tgt, args.compress_type)
+
+
