@@ -18,7 +18,7 @@ import gzip
 
 from logzero import logger
 
-from xml_extractor import wiki_replace,pure_section
+from xml_extractor import wiki_replace, pure_section
 
 # https://github.com/attardi/wikiextractor
 
@@ -31,7 +31,7 @@ def parse_line(a, b, keep_keys=['title', 'text', "popularity_score"]):
     # revision = content['version']
     # if type == 'page' and content['namespace'] == 0:
     if type == '_doc' and content['namespace'] == 0:
-        title = content['title'].strip()  
+        title = content['title'].strip()
         text = content['text'].strip()
         if not title or re.findall('^[a-zA-Z]+:', title) or re.findall(u'^#', text):
             return
@@ -50,10 +50,10 @@ def parse_line(a, b, keep_keys=['title', 'text', "popularity_score"]):
         #     id, url, title, language, revision)
         # page = header + title + '\n\n' + text + '\n</doc>\n'
         if not doc or sum(len(x) for x in doc) < 64:
-            return        
+            return
         content["text"] = doc
-        page={k:v for k,v in content.items() if k in keep_keys}
-        return page        
+        page = {k: v for k, v in content.items() if k in keep_keys}
+        return page
 
 
 def process_dump(input_file, out_file, compress_type=""):
@@ -100,12 +100,12 @@ def process_dump(input_file, out_file, compress_type=""):
         page = parse_line(line, doc)
         if not page:
             continue
-        l =json.dumps(page,ensure_ascii=False)+ '\n'
+        l = json.dumps(page, ensure_ascii=False) + '\n'
         if compress_type:
-            l = l.encode('utf-8')
+            l = l.encode('utf-8', errors="ignore")
         output.write(l)
         n_tgt += 1
-        if n_src%100000==0:
+        if n_src % 100000 == 0:
             logger.info(f"{n_src} --> {out_file} {n_tgt}")
     output.close()
     return n_src, n_tgt
@@ -131,7 +131,5 @@ if __name__ == '__main__':
     parser.add_argument("--tgt", default="-")
     parser.add_argument("--compress_type", default="")
     args = parser.parse_args()
-    
+
     extract(args.src, args.tgt, args.compress_type)
-
-

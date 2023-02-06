@@ -65,7 +65,8 @@ def parse_text(text):
     contents = [
         section.plain_text()
         for section in sections]
-    spans = [[ wiki_replace(x).strip() for x in y.strip().splitlines() ] for y in contents if y.strip() ]
+    spans = [[wiki_replace(x).strip() for x in y.strip().splitlines()]
+             for y in contents if y.strip()]
     doc = [pure_section('\n'.join(x)).strip() for x in spans]
     doc = [x.strip() for x in doc if x.strip()]
     return doc
@@ -86,7 +87,7 @@ def parse_wiki(wiki):
 def extract(src, out_file, compress_type=''):
     logger.info(f"extract {src}")
     pipe = subprocess.Popen(
-        f"bzcat  {src}",shell=True, stdout=subprocess.PIPE, encoding='utf-8', errors='ignore')
+        f"bzcat  {src}", shell=True, stdout=subprocess.PIPE, encoding='utf-8', errors='ignore')
     wikis = extract_pages(pipe.stdout)
 
     if out_file == '-':
@@ -123,7 +124,7 @@ def extract(src, out_file, compress_type=''):
         for line in re:
             if line:
                 if compress_type:
-                    line = line.encode('utf-8')
+                    line = line.encode('utf-8', errors="ignore")
                 output.write(line)
                 n += 1
         batch = []
@@ -146,4 +147,4 @@ if __name__ == "__main__":
     parser.add_argument("--compress_type", type=str, default="")
     args = parser.parse_args()
 
-    extract(args.src,args.tgt, compress_type=args.compress_type)
+    extract(args.src, args.tgt, compress_type=args.compress_type)
