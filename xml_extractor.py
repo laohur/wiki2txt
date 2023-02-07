@@ -1,81 +1,37 @@
 import bz2
 import gzip
-import lzma
-import os
-import pathlib
-import sys
-import time
-from gensim.corpora.wikicorpus import extract_pages, filter_wiki
-import collections
-import re
 import json
+import lzma
 import multiprocessing
-from tqdm import tqdm
-import codecs
+import os
 import subprocess
-from html2text import html2text as htt
-import wikitextparser as wtp
+import sys
+import unicodedata
+
+from gensim.corpora.wikicorpus import extract_pages, filter_wiki
 from logzero import logger
-from threading import Thread
-from multiprocessing import Queue, Process, cpu_count
-import queue
 
 
-def wiki_replace(s):
-    # https://spaces.ac.cn/archives/4176
-    s = re.sub(':*{\|[\s\S]*?\|}', '', s)
-    s = re.sub('<gallery>[\s\S]*?</gallery>', '', s)
-    s = re.sub('(.){{([^{}\n]*?\|[^{}\n]*?)}}', '\\1[[\\2]]', s)
-    s = filter_wiki(s)
-    s = re.sub('\* *\n|\'{2,}', '', s)
-    s = re.sub('\n+', '\n', s)
-    s = re.sub('\n[:;]|\n +', '\n', s)
-    # s = re.sub('\n==', '\n\n==', s)
-    return s
-
-
-ref_words = ['\n*', 'refer to:', 'See also', 'Look up']
-ref_words = [x.lower() for x in ref_words]
-
-
-def pure_section(x):
-    x = x.strip()
-    if x.endswith('=='):
-        return ''
-    for ref in ref_words:
-        if ref in x[:32] or ref in x[-32:]:
-            return ''
-    lines = [l.strip() for l in x.splitlines() if l.strip()]
-    doc = [x for x in lines if not x.startswith(
-        'File:') and not x.startswith('* ')]
-    doc = [x.strip() for x in doc if x.strip()]
-    if sum(1 if x.startswith('==') else 0 for x in doc) == len(doc):
-        return ''
-    return ''.join(doc)
+def valid_line(l):
+    for x in l:
+        if unicodedata.category(x)[0] in 'LN':
+            return True
+    return False
 
 
 def parse_text(text):
     """
-    slim=0: keep all sections
-    slim=1: remove igored_sections
-    slim=2: keep first section
-    slim=3: keep first paragraph
     """
-    sections = wtp.parse(text).sections
-    contents = [
-        section.plain_text()
-        for section in sections]
-    spans = [[wiki_replace(x).strip() for x in y.strip().splitlines()]
-             for y in contents if y.strip()]
-    doc = [pure_section('\n'.join(x)).strip() for x in spans]
-    doc = [x.strip() for x in doc if x.strip()]
-    return doc
+    doc4 = filter_wiki(text).splitlines()
+    doc5 = [x.strip() for x in doc4 if x.strip()]
+    doc6 = [x for x in doc5 if valid_line(x)]
+    return doc6
 
 
 def parse_wiki(wiki):
     title, text, pageid = wiki
-    if not title or re.findall('^[a-zA-Z]+:', title) or re.findall(u'^#', text):
-        return
+    # if title=='Aaron':
+    #     d=0
     doc = parse_text(text)
     if not doc or sum(len(x) for x in doc) < 64:
         return
@@ -147,4 +103,4 @@ if __name__ == "__main__":
     parser.add_argument("--compress_type", type=str, default="")
     args = parser.parse_args()
 
-    extract(args.src, args.tgt, compress_type=args.compress_type)
+    extract(args.src,args.tgt, compress_type=args.compress_type)

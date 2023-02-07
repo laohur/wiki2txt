@@ -1,24 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import bz2
-import lzma
-import sys
-import traceback
-import glob
-import subprocess
-import json
-import os
-import requests
-import re
-import random
-import time
-import shutil
 import argparse
+import bz2
 import gzip
+import json
+import lzma
+import os
+import re
+import sys
 
 from logzero import logger
-
-from xml_extractor import wiki_replace, pure_section
 
 # https://github.com/attardi/wikiextractor
 
@@ -32,17 +23,14 @@ def parse_line(a, b, keep_keys=['title', 'text', "popularity_score"]):
     # if type == 'page' and content['namespace'] == 0:
     if type == '_doc' and content['namespace'] == 0:
         title = content['title'].strip()
-        text = content['text'].strip()
-        if not title or re.findall('^[a-zA-Z]+:', title) or re.findall(u'^#', text):
-            return
+        if title == 'Aaron':
+            d = 0
+        text = content['text']
         # drop references:
         # ^ The Penguin Dictionary
         text = re.sub(r'  \^ .*', '', text).strip()
-        contents = text.splitlines()
-        spans = [wiki_replace(x).strip() for x in contents]
-        doc = [pure_section(x).strip() for x in spans]
-        doc = [x.strip() for x in doc if x.strip()]
-
+        doc = text.splitlines()
+        doc=[x.strip() for x in doc if x.strip() ]
         # urlbase = 'http://it.wikipedia.org/'
         # urlbase = f'http://{language}.wikipedia.org/'
         # url = urlbase + 'wiki?curid=' + id
