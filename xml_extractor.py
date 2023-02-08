@@ -13,37 +13,28 @@ from logzero import logger
 
 
 def valid_line(l):
-    for x in l:
+    for x in l :
         if unicodedata.category(x)[0] in 'LN':
             return True
     return False
-
-
-def parse_text(text):
-    """
-    """
-    doc4 = filter_wiki(text).splitlines()
-    doc5 = [x.strip() for x in doc4 if x.strip()]
-    doc6 = [x for x in doc5 if valid_line(x)]
-    return doc6
-
 
 def parse_wiki(wiki):
     title, text, pageid = wiki
     # if title=='Aaron':
     #     d=0
-    doc = parse_text(text)
+    doc = filter_wiki(text).splitlines()
+    doc = [x.strip() for x in doc if x.strip()]
+    doc = [x for x in doc if valid_line(x)]
     if not doc or sum(len(x) for x in doc) < 64:
         return
     page = {"title": title, "text": doc}
-    line = json.dumps(page, ensure_ascii=False)+'\n'
-    return line
+    return page
 
 
 def extract(src, out_file, compress_type=''):
     logger.info(f"extract {src}")
     pipe = subprocess.Popen(
-        f"bzcat  {src}", shell=True, stdout=subprocess.PIPE, encoding='utf-8', errors='ignore')
+        f"bzcat  {src}",shell=True, stdout=subprocess.PIPE, encoding='utf-8', errors='ignore')
     wikis = extract_pages(pipe.stdout)
 
     if out_file == '-':
@@ -67,18 +58,20 @@ def extract(src, out_file, compress_type=''):
         batch.append(wiki)
         if len(batch) >= 1e5:
             re = pool.imap_unordered(parse_wiki, batch)
-            for line in re:
-                if line:
+            for page in re:
+                if page:
+                    line = json.dumps(page, ensure_ascii=False)+'\n'
                     if compress_type:
-                        line = line.encode('utf-8')
+                        line = line.encode('utf-8', errors="ignore")
                     output.write(line)
                     n += 1
             batch = []
             logger.info(f"{i}--> {out_file} {n}")
     if len(batch) > 0:
         re = pool.imap_unordered(parse_wiki, batch)
-        for line in re:
-            if line:
+        for page in re:
+            if page:
+                line = json.dumps(page, ensure_ascii=False)+'\n'
                 if compress_type:
                     line = line.encode('utf-8', errors="ignore")
                 output.write(line)
@@ -104,3 +97,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     extract(args.src,args.tgt, compress_type=args.compress_type)
+
