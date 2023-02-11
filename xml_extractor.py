@@ -9,13 +9,15 @@ import subprocess
 import sys
 import unicodedata
 
+# import wikitextparser as wtp
+import regex as re
 from gensim.corpora.wikicorpus import extract_pages, filter_wiki
 from logzero import logger
 from mediawiki_dump.tokenizer import clean
-# import wikitextparser as wtp
+
 
 def readStream(input_file):
-    if input_file=='-':
+    if input_file == '-':
         return sys.stdin
     if input_file.endswith('.xz'):
         input = lzma.open(input_file)
@@ -28,14 +30,21 @@ def readStream(input_file):
     elif input_file.endswith('.gz'):
         input = gzip.open(input_file)
     else:
-        input= open(input_file)
+        input = open(input_file)
     return input
 
-def pure_line(l):
-    letters = ''.join(x for x in l if unicodedata.category(x)[0] =='L')
+def clean_line(line):
+    l = line.strip()
+    for x in ['\( ', '（ ', ' \)', ' ）']:
+        l = re.sub(x, ' ', l)
+    l=' '.join(l.split())
+    return l
+
+def valid_line(l):
+    letters = ''.join(x for x in l if unicodedata.category(x)[0] == 'L')
     if len(letters.encode()) < 30:
         return 0
-    if len(letters)/len(l) > 0.7:
+    if len(letters)/len(l) > 0.75:
         return 1
     return 0
 
@@ -70,13 +79,13 @@ def parse_wiki(wiki):
     title, text, pageid = wiki
     # if text[0]=='#':
     #     return
-    # doc = filter_wiki(text).splitlines()  # '''A''', or '''a''', 
+    # doc = filter_wiki(text).splitlines()  # '''A''', or '''a''',
     # doc = wiki_replace(text).splitlines()  # * Cite encyclopedia |title=A |
     # doc = wiki_replace2(text).splitlines()  # same
-    # doc = wtp.parse(text).plain_text().splitlines()  # '{| cellspacing="10" 
+    # doc = wtp.parse(text).plain_text().splitlines()  # '{| cellspacing="10"
     doc = clean(text).splitlines()  # 'History of the Alphabet'  ' '
-    doc = [x.strip() for x in doc if x.strip()]
-    doc = [x for x in doc if pure_line(x)]
+    doc = [clean_line(x) for x in doc ]
+    doc = [x for x in doc if valid_line(x)]
     if not doc or sum(len(x) for x in doc) < 64:
         return
     page = {"title": title, "text": doc}
@@ -87,7 +96,7 @@ def extract(src, out_file, compress_type=''):
     logger.info(f"extract {src}")
     # input = subprocess.Popen(
     #     f"bzcat  {src}", shell=True, stdout=subprocess.PIPE, encoding='utf-8', errors='ignore').stdout
-    input=readStream(src)
+    input = readStream(src)
     wikis = extract_pages(input)
 
     if out_file == '-':
@@ -120,6 +129,7 @@ def extract(src, out_file, compress_type=''):
                     n += 1
             batch = []
             logger.info(f"{i}--> {out_file} {n}")
+            break
     if len(batch) > 0:
         re = pool.imap_unordered(parse_wiki, batch)
         for page in re:
