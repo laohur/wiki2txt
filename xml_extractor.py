@@ -8,7 +8,7 @@ import re
 import subprocess
 import sys
 import unicodedata
-
+import html
 # import wikitextparser as wtp
 import regex as re
 from gensim.corpora.wikicorpus import extract_pages, filter_wiki
@@ -34,14 +34,13 @@ def readStream(input_file):
     return input
 
 def clean_line(line):
-    l = line.strip()
-    for x in ['\( ', '（ ', ' \)', ' ）']:
-        l = re.sub(x, ' ', l)
-    l=' '.join(l.split())
+    l = html.unescape(line).strip()
+    l=re.sub("[\(|（][\p{C}|p{M}|\p{P}\p{S}|\p{Z}]{1,}[\)|）]",' ',l)
+    l=' '.join( x for x in  l.split() if x)
     return l
 
 def valid_line(l):
-    letters = ''.join(x for x in l if unicodedata.category(x)[0] == 'L')
+    letters = ''.join(x for x in l if unicodedata.category(x)[0] in 'L')
     if len(letters.encode()) < 30:
         return 0
     if len(letters)/len(l) > 0.75:
@@ -77,15 +76,20 @@ def wiki_replace2(s):
 
 def parse_wiki(wiki):
     title, text, pageid = wiki
-    # if text[0]=='#':
-    #     return
+    if not title or re.findall('^[a-zA-Z]+:', title) or re.findall(u'^#', text):    
+        return
     # doc = filter_wiki(text).splitlines()  # '''A''', or '''a''',
     # doc = wiki_replace(text).splitlines()  # * Cite encyclopedia |title=A |
     # doc = wiki_replace2(text).splitlines()  # same
     # doc = wtp.parse(text).plain_text().splitlines()  # '{| cellspacing="10"
-    doc = clean(text).splitlines()  # 'History of the Alphabet'  ' '
-    doc = [clean_line(x) for x in doc ]
-    doc = [x for x in doc if valid_line(x)]
+    # sections=wtp.parse(text).sections
+    # doc0=[clean(str(x)) for x in sections]
+    doc0 = clean(text).splitlines()  # 'History of the Alphabet'  ' '
+    # doc1 = [clean_line(y) for x in doc0  for y in x.splitlines() if y ]
+    doc1 = [clean_line(x) for x in doc0 if x ]
+    # doc2 = [x for x in doc1 if valid_line(x)]
+    # doc3=[ y.strip() for x in doc2 for y in x.splitlines() if y.strip() ]
+    doc = [x.strip() for x in doc1 if valid_line(x)]
     if not doc or sum(len(x) for x in doc) < 64:
         return
     page = {"title": title, "text": doc}
@@ -113,12 +117,17 @@ def extract(src, out_file, compress_type=''):
         else:
             raise ValueError("invalid compress_type "+compress_type)
 
-    batch = []
     n = 0
-    pool = multiprocessing.Pool(max(1, os.cpu_count()))
-    for i, wiki in enumerate(wikis):
-        batch.append(wiki)
-        if len(batch) >= 1e5:
+    pool = multiprocessing.Pool(max(1, os.cpu_count()-1))
+    end=False
+    batch = []
+    for i in range(10**10):
+        try:
+            d=next(wikis)
+            batch.append(d)
+        except:
+            end=True
+        if end or len(batch)>=10000:
             re = pool.imap_unordered(parse_wiki, batch)
             for page in re:
                 if page:
@@ -129,18 +138,7 @@ def extract(src, out_file, compress_type=''):
                     n += 1
             batch = []
             logger.info(f"{i}--> {out_file} {n}")
-            break
-    if len(batch) > 0:
-        re = pool.imap_unordered(parse_wiki, batch)
-        for page in re:
-            if page:
-                line = json.dumps(page, ensure_ascii=False)+'\n'
-                if compress_type:
-                    line = line.encode('utf-8', errors="ignore")
-                output.write(line)
-                n += 1
-        batch = []
-        logger.info(f"{i}--> {out_file} {n}")
+
     output.close()
     if n == 0:
         logger.warning(f" {src} {i} extract --> {out_file} {n} pages ")

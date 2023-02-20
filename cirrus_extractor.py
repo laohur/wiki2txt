@@ -1,20 +1,23 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import argparse
 import bz2
-import gzip
-import json
 import lzma
+import subprocess
+import sys
+import json
 import os
 import re
-import sys
+import argparse
+import gzip
 
 from logzero import logger
 
+from xml_extractor import readStream
 # https://github.com/attardi/wikiextractor
 
 
-def parse_line(a, b, keep_keys=['title', 'text', "popularity_score"]):
+
+def parse_line(a, b, keep_keys=['title',"opening_text", 'text', "popularity_score"]):
     index = json.loads(a)
     content = json.loads(b)
     type = index['index']['_type']
@@ -22,9 +25,9 @@ def parse_line(a, b, keep_keys=['title', 'text', "popularity_score"]):
     # revision = content['version']
     # if type == 'page' and content['namespace'] == 0:
     if type == '_doc' and content['namespace'] == 0:
-        title = content['title'].strip()
-        if title == 'Aaron':
-            d = 0
+        # title = content['title'].strip()
+        # opening_text = content.get('opening_text',"")  # content['opening_text']
+
         text = content['text']
         # drop references:
         # ^ The Penguin Dictionary
@@ -52,10 +55,11 @@ def process_dump(input_file, out_file, compress_type=""):
     :param file_compress: whether to compress files with bzip.
     """
 
-    if input_file == '-':
-        input = sys.stdin
-    else:
-        input = gzip.open(input_file)
+    # if input_file == '-':
+    #     input = sys.stdin
+    # else:
+    #     input = gzip.open(input_file)
+    input=readStream(input_file)
 
     if out_file == '-':
         output = sys.stdout
@@ -114,8 +118,7 @@ def extract(src, tgt, compress_type="",):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--src",
-                        help="Cirrus Json wiki dump file")
+    parser.add_argument("--src", default="")
     parser.add_argument("--tgt", default="-")
     parser.add_argument("--compress_type", default="")
     args = parser.parse_args()
