@@ -20,17 +20,17 @@ def readStream(input_file):
     if input_file == '-':
         return sys.stdin
     if input_file.endswith('.xz'):
-        input = lzma.open(input_file)
+        input = lzma.open(input_file,"rt",errors="ignore")
     elif input_file.endswith('.bz2'):
-        input = bz2.BZ2File(input_file)
+        input = bz2.open(input_file,"rt",errors='ingore')
     elif input_file.endswith('.zip'):
         pipe = subprocess.Popen(
             "unzip -p "+input_file, shell=True, stdout=subprocess.PIPE, errors='ingore')
         return pipe.stdout
     elif input_file.endswith('.gz'):
-        input = gzip.open(input_file)
+        input = gzip.open(input_file,"rt",errors="ignore")
     else:
-        input = open(input_file)
+        input = open(input_file,errors='ingore')
     return input
 
 def clean_line(line):
@@ -90,9 +90,10 @@ def parse_wiki(wiki):
     # doc2 = [x for x in doc1 if valid_line(x)]
     # doc3=[ y.strip() for x in doc2 for y in x.splitlines() if y.strip() ]
     doc = [x.strip() for x in doc1 if valid_line(x)]
-    if not doc or sum(len(x) for x in doc) < 64:
+    sent="\n".join(doc)
+    if not doc or len(sent) < 64:
         return
-    page = {"title": title, "text": doc}
+    page = {"title": title, "text": sent}
     return page
 
 
@@ -158,3 +159,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     extract(args.src,args.tgt, compress_type=args.compress_type)
+    

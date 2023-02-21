@@ -32,18 +32,19 @@ def parse_line(a, b, keep_keys=['title',"opening_text", 'text', "popularity_scor
         # drop references:
         # ^ The Penguin Dictionary
         text = re.sub(r'  \^ .*', '', text).strip()
-        doc = text.splitlines()
-        doc=[x.strip() for x in doc if x.strip() ]
+
+        # doc = text.splitlines()
+        # doc=[x.strip() for x in doc if x.strip() ]
         # urlbase = 'http://it.wikipedia.org/'
         # urlbase = f'http://{language}.wikipedia.org/'
         # url = urlbase + 'wiki?curid=' + id
         # header = '<doc id="%s" url="%s" title="%s" language="%s" revision="%s">\n' % (
         #     id, url, title, language, revision)
         # page = header + title + '\n\n' + text + '\n</doc>\n'
-        if not doc or sum(len(x) for x in doc) < 64:
+        if not text or len(text) < 64:
             return
-        content["text"] = doc
-        page = {k: v for k, v in content.items() if k in keep_keys}
+        content["text"] = text
+        page = {k: v for k, v in content.items() if k in keep_keys and v}
         return page
 
 
@@ -104,16 +105,14 @@ def process_dump(input_file, out_file, compress_type=""):
 
 
 def extract(src, tgt, compress_type="",):
-    if os.path.exists(tgt):
-        os.system(f"rm {tgt}")
-        logger.warning(f" rm {tgt}  ")
     n_src, n_tgt = process_dump(src, tgt, compress_type)
-    logger.info(f" {src}:{n_src} --> {tgt}:{n_tgt} ")
+    line=f" {src}:{n_src} --> {tgt}:{n_tgt} "
+    logger.info(line)
     if not n_tgt:
         os.system(f"rm {tgt}")
         logger.warning(f" --> empty {tgt}  cleaned!")
         return
-    return tgt
+    return line
 
 
 if __name__ == '__main__':
