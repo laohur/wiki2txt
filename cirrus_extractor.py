@@ -12,21 +12,34 @@ import gzip
 
 from logzero import logger
 
-from xml_extractor import readStream
+def readStream(input_file):
+    if input_file == '-':
+        return sys.stdin
+    if input_file.endswith('.xz'):
+        input = lzma.open(input_file,"rt",errors="ignore")
+    elif input_file.endswith('.bz2'):
+        input = bz2.open(input_file,"rt",errors='ingore')
+    elif input_file.endswith('.zip'):
+        pipe = subprocess.Popen(
+            "unzip -p "+input_file, shell=True, stdout=subprocess.PIPE, errors='ingore')
+        return pipe.stdout
+    elif input_file.endswith('.gz'):
+        input = gzip.open(input_file,"rt",errors="ignore")
+    else:
+        input = open(input_file,errors='ingore')
+    return input
 # https://github.com/attardi/wikiextractor
 
 
 
-def parse_line(a, b, keep_keys=['title',"opening_text", 'text', "popularity_score"]):
+def parse_line(a, b):
     index = json.loads(a)
     content = json.loads(b)
     type = index['index']['_type']
-    # id = index['index']['_id']
     # revision = content['version']
     # if type == 'page' and content['namespace'] == 0:
     if type == '_doc' and content['namespace'] == 0:
-        # title = content['title'].strip()
-        # opening_text = content.get('opening_text',"")  # content['opening_text']
+        # opening_text =   # content['opening_text']
 
         text = content['text']
         # drop references:
@@ -43,8 +56,14 @@ def parse_line(a, b, keep_keys=['title',"opening_text", 'text', "popularity_scor
         # page = header + title + '\n\n' + text + '\n</doc>\n'
         if not text or len(text) < 64:
             return
-        content["text"] = text
-        page = {k: v for k, v in content.items() if k in keep_keys and v}
+        page={
+            "id":index['index']['_id'],
+            "language":content['language'],
+            'wiki':content['wiki'],
+            "title":content['title'],
+            "opening_text":content.get('opening_text',""),
+            "text":text,
+        }
         return page
 
 
@@ -123,3 +142,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     extract(args.src, args.tgt, args.compress_type)
+
+
