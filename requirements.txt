@@ -1,0 +1,5 @@
+regex
+loguru
+gensim
+mediawiki_dump
+mwparserfromhell
